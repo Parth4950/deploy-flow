@@ -1,0 +1,52 @@
+
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME = 'deployflow'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'sudo docker build -t deployflow:${BUILD_NUMBER} .'
+            }
+        }
+
+        stage('Import Image into Kubernetes') {
+            steps {
+                sh '''
+                    sudo docker save deployflow:${BUILD_NUMBER} -o /tmp/deployflow.tar
+                    sudo k3s ctr images import /tmp/deployflow.tar
+                    rm -f /tmp/deployflow.tar
+                '''
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    sudo k3s kubectl set image deployment/deployflow \
+                    deployflow=deployflow:${BUILD_NUMBER}
+                    sudo k3s kubectl rollout status deployment/deployflow
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'DeployFlow deployed successfully!'
+        }
+        failure {
+            echo 'Deployment failed. Check the build logs.'
+        }
+    }
+}
