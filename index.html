@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeployFlow | DevOps Control Center</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#080d18;color:#eaf0ff;min-height:100vh}
+nav{height:75px;border-bottom:1px solid #202b40;display:flex;align-items:center;justify-content:space-between;padding:0 8%;background:#0d1423}
+.logo{font-size:24px;font-weight:800;color:#70e1c0}
+.logo span{color:white}
+.status{color:#70e1c0;font-size:13px}
+main{max-width:1100px;margin:85px auto;padding:0 25px}
+.tag{color:#70e1c0;font-size:13px;letter-spacing:3px;text-transform:uppercase}
+h1{font-size:58px;line-height:1.1;margin:22px 0}
+h1 span{color:#70e1c0}
+.sub{color:#a4b1c9;font-size:17px;line-height:1.8;max-width:650px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:55px}
+.card{background:#111d30;border:1px solid #263650;border-radius:14px;padding:28px}
+.card small{color:#70e1c0;text-transform:uppercase;letter-spacing:2px}
+.card h2{font-size:22px;margin:18px 0 12px}
+.card p{color:#a4b1c9;line-height:1.7;font-size:14px}
+.pipeline{margin-top:35px;background:#111d30;border:1px solid #263650;padding:30px;border-radius:14px}
+.pipeline h2{margin-bottom:22px}
+.steps{display:flex;gap:12px;flex-wrap:wrap}
+.step{background:#172942;border:1px solid #34516c;padding:13px 18px;border-radius:8px;color:#70e1c0;font-size:13px}
+footer{text-align:center;color:#71809b;margin:70px 0 30px;font-size:13px}
+@media(max-width:700px){h1{font-size:40px}.cards{grid-template-columns:1fr}main{margin:55px auto}}
+</style>
+</head>
+<body>
+<nav><div class="logo">Deploy<span>Flow.</span></div><div class="status">● SYSTEM ONLINE</div></nav>
+<main>
+<div class="tag">DevOps Deployment Platform</div>
+<h1>Build. Deploy.<br><span>Scale.</span></h1>
+<p class="sub">A modern CI/CD deployment platform powered by Jenkins, Docker and Kubernetes. Automating software delivery from source code to production.</p>
+<div class="cards">
+<div class="card"><small>01 / Integration</small><h2>Jenkins CI/CD</h2><p>Automated builds, testing and continuous integration directly from GitHub.</p></div>
+<div class="card"><small>02 / Containerization</small><h2>Docker Engine</h2><p>Package applications into portable, consistent and lightweight containers.</p></div>
+<div class="card"><small>03 / Orchestration</small><h2>Kubernetes</h2><p>Deploy, manage and scale containerized applications with orchestration.</p></div>
+</div>
+<div class="pipeline"><h2>Deployment Pipeline</h2><div class="steps"><div class="step">GitHub</div><div class="step">→ Jenkins</div><div class="step">→ Docker</div><div class="step">→ Kubernetes</div><div class="step">→ Live Website</div></div></div>
+</main>
+<footer>DEPLOYFLOW © 2026 | EXPERIMENT 07 | AWS CLOUD INFRASTRUCTURE</footer>
+</body>
+</html>
