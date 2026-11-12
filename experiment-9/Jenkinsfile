@@ -1,0 +1,49 @@
+pipeline {
+  agent any
+  environment {
+    KUBECONFIG = '/var/lib/jenkins/.kube/config'
+    NAMESPACE = 'healthcare'
+    BACKEND_IMAGE = 'healthcare-backend'
+    FRONTEND_IMAGE = 'healthcare-frontend'
+    K3S_CTR = '/usr/local/bin/ctr'
+    K3S_SOCKET = '/run/k3s/containerd/containerd.sock'
+  }
+  options { timestamps(); disableConcurrentBuilds() }
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    stage('Prepare') { steps { sh 'set -eu; docker --version; kubectl version --client; test -f experiment-9/backend/requirements.txt; test -f experiment-9/frontend/package.json' } }
+    stage('Secret Scan - Gitleaks') { steps { sh 'docker run --rm -v "$WORKSPACE:/repo" zricethezav/gitleaks:latest detect --source=/repo --no-git --redact --exit-code 1' } }
+    stage('SAST - Semgrep') { steps { sh 'docker run --rm -v "$WORKSPACE:/src" semgrep/semgrep:latest semgrep scan --config p/security-audit --error /src/experiment-9/backend /src/experiment-9/frontend/src' } }
+    stage('IaC Scan - Checkov') { steps { sh 'docker run --rm -v "$WORKSPACE:/repo" bridgecrew/checkov:latest -d /repo/experiment-9/k8s --framework kubernetes --soft-fail' } }
+    stage('Dependency Scan - Trivy') { steps { sh 'docker run --rm -v "$WORKSPACE:/work" -w /work aquasec/trivy:latest fs --scanners vuln,misconfig,secret --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 experiment-9' } }
+    stage('Generate SBOM - Syft') { steps { sh 'mkdir -p reports && docker run --rm -v "$WORKSPACE:/src" -w /src anchore/syft:latest dir:experiment-9 -o cyclonedx-json=reports/healthcare-sbom.cdx.json && test -s reports/healthcare-sbom.cdx.json' } }
+    stage('SBOM Vulnerability Gate - Grype') { steps { sh 'docker run --rm -v "$WORKSPACE:/src" -w /src anchore/grype:latest sbom:reports/healthcare-sbom.cdx.json --fail-on high' } }
+    stage('Build Container Images') { steps { sh 'docker build -t ${BACKEND_IMAGE}:${BUILD_NUMBER} -f experiment-9/backend/Dockerfile experiment-9/backend && docker build -t ${FRONTEND_IMAGE}:${BUILD_NUMBER} -f experiment-9/frontend/Dockerfile experiment-9/frontend' } }
+    stage('Container Image Scan - Trivy') { steps { sh '''
+      docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ${BACKEND_IMAGE}:${BUILD_NUMBER}
+      docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 ${FRONTEND_IMAGE}:${BUILD_NUMBER}
+    ''' } }
+    stage('Import Images into K3s') { steps { sh '''
+      set -eu
+      docker save ${BACKEND_IMAGE}:${BUILD_NUMBER} -o /tmp/healthcare-backend.tar
+      docker save ${FRONTEND_IMAGE}:${BUILD_NUMBER} -o /tmp/healthcare-frontend.tar
+      sudo ${K3S_CTR} --address ${K3S_SOCKET} --namespace k8s.io images import /tmp/healthcare-backend.tar
+      sudo ${K3S_CTR} --address ${K3S_SOCKET} --namespace k8s.io images import /tmp/healthcare-frontend.tar
+      rm -f /tmp/healthcare-backend.tar /tmp/healthcare-frontend.tar
+    ''' } }
+    stage('Deploy Healthcare Application') { steps { sh '''
+      set -eu
+      kubectl apply -f experiment-9/k8s/namespace.yaml
+      sed "s/BUILD_NUMBER/${BUILD_NUMBER}/g" experiment-9/k8s/deployment.yaml | kubectl apply -f -
+      kubectl apply -f experiment-9/k8s/service.yaml
+      kubectl rollout status deployment/healthcare-backend -n ${NAMESPACE} --timeout=180s
+      kubectl rollout status deployment/healthcare-frontend -n ${NAMESPACE} --timeout=180s
+    ''' } }
+    stage('Verify Deployment') { steps { sh 'kubectl get deployments,pods,services -n ${NAMESPACE} -o wide && kubectl get endpoints -n ${NAMESPACE}' } }
+  }
+  post {
+    success { echo 'DevSecOps pipeline passed. Healthcare app deployed.'; sh 'kubectl get svc healthcare-frontend -n healthcare' }
+    failure { echo 'Pipeline failed. Review the first failed security or deployment stage. Existing deployments are not deleted.' }
+    always { echo 'Experiment 9 finished. Experiment 8 bluegreen resources are not modified.' }
+  }
+}
