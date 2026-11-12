@@ -1,4 +1,5 @@
 import {useEffect,useMemo,useState} from 'react'
+import type {ReactNode} from 'react'
 import {Activity,Bell,CalendarDays,CheckCircle2,ChevronDown,ChevronRight,Clock3,FileHeart,HeartPulse,LayoutDashboard,Menu,MoreHorizontal,Plus,Search,Settings,ShieldCheck,Stethoscope,Users,X} from 'lucide-react'
 import {Area,AreaChart,CartesianGrid,ResponsiveContainer,Tooltip,XAxis} from 'recharts'
 type Patient={id:string;name:string;age:number;condition:string;status:string;last_visit:string;doctor:string}
@@ -38,5 +39,5 @@ function App(){
 function Metric({icon:Icon,label,value,change,tone,foot}:{icon:any;label:string;value:number;change:string;tone:string;foot:string}){return <section className="panel metric"><div className={'metricicon '+tone}><Icon size={19}/></div><div className="metriclabel">{label}</div><div className="metricbottom"><strong>{value}</strong><span>{change}</span></div><small>{foot}</small></section>}
 function Status({value}:{value:string}){const good=['Active','Confirmed','Available','Normal','Checked in'].includes(value),warn=['Under Review','Pending','Review','In consultation'].includes(value);return <span className={'status '+(good?'good':warn?'warn':'neutral')}>● {value}</span>}
 function Person({name,id,i}:{name:string;id:string;i:number}){return <div className="person"><div className={'avatar a'+i%4}>{initials(name)}</div><div><b>{name}</b><small>{id}</small></div></div>}
-function Table({children}:{children:React.ReactNode}){return <div className="tablewrap"><table>{children}</table></div>}
+function Table({children}:{children:ReactNode}){return <div className="tablewrap"><table>{children}</table></div>}
 export default App
