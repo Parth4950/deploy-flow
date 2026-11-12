@@ -13,6 +13,11 @@ spec:
       labels:
         app: healthcare-backend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: api
         image: healthcare-backend:BUILD_NUMBER
@@ -21,21 +26,37 @@ spec:
         - name: http
           containerPort: 8000
         readinessProbe:
-          httpGet: {path: /health, port: http}
+          httpGet:
+            path: /health
+            port: http
           initialDelaySeconds: 3
           periodSeconds: 5
         livenessProbe:
-          httpGet: {path: /health, port: http}
+          httpGet:
+            path: /health
+            port: http
           initialDelaySeconds: 8
           periodSeconds: 10
         resources:
-          requests: {cpu: 100m, memory: 128Mi}
-          limits: {cpu: 500m, memory: 512Mi}
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
           runAsNonRoot: true
           runAsUser: 10001
-          capabilities: {drop: ["ALL"]}
+          capabilities:
+            drop: ["ALL"]
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -52,6 +73,11 @@ spec:
       labels:
         app: healthcare-frontend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: web
         image: healthcare-frontend:BUILD_NUMBER
@@ -60,17 +86,42 @@ spec:
         - name: http
           containerPort: 8080
         readinessProbe:
-          httpGet: {path: /health, port: http}
+          httpGet:
+            path: /health
+            port: http
           initialDelaySeconds: 3
           periodSeconds: 5
         livenessProbe:
-          httpGet: {path: /health, port: http}
+          httpGet:
+            path: /health
+            port: http
           initialDelaySeconds: 8
           periodSeconds: 10
         resources:
-          requests: {cpu: 100m, memory: 128Mi}
-          limits: {cpu: 500m, memory: 512Mi}
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
         securityContext:
           allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
           runAsNonRoot: true
-          capabilities: {drop: ["ALL"]}
+          runAsUser: 101
+          capabilities:
+            drop: ["ALL"]
+        volumeMounts:
+        - name: nginx-tmp
+          mountPath: /tmp
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /var/run
+      volumes:
+      - name: nginx-tmp
+        emptyDir: {}
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
