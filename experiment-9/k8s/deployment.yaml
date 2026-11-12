@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healthcare-backend
+  namespace: healthcare
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: healthcare-backend
+  template:
+    metadata:
+      labels:
+        app: healthcare-backend
+    spec:
+      containers:
+      - name: api
+        image: healthcare-backend:BUILD_NUMBER
+        imagePullPolicy: Never
+        ports:
+        - name: http
+          containerPort: 8000
+        readinessProbe:
+          httpGet: {path: /health, port: http}
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        livenessProbe:
+          httpGet: {path: /health, port: http}
+          initialDelaySeconds: 8
+          periodSeconds: 10
+        resources:
+          requests: {cpu: 100m, memory: 128Mi}
+          limits: {cpu: 500m, memory: 512Mi}
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 10001
+          capabilities: {drop: ["ALL"]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healthcare-frontend
+  namespace: healthcare
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: healthcare-frontend
+  template:
+    metadata:
+      labels:
+        app: healthcare-frontend
+    spec:
+      containers:
+      - name: web
+        image: healthcare-frontend:BUILD_NUMBER
+        imagePullPolicy: Never
+        ports:
+        - name: http
+          containerPort: 8080
+        readinessProbe:
+          httpGet: {path: /health, port: http}
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        livenessProbe:
+          httpGet: {path: /health, port: http}
+          initialDelaySeconds: 8
+          periodSeconds: 10
+        resources:
+          requests: {cpu: 100m, memory: 128Mi}
+          limits: {cpu: 500m, memory: 512Mi}
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities: {drop: ["ALL"]}
