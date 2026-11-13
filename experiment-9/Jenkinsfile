@@ -25,11 +25,14 @@ pipeline {
     ''' } }
     stage('Import Images into K3s') { steps { sh '''
       set -eu
-      docker save ${BACKEND_IMAGE}:${BUILD_NUMBER} -o /tmp/healthcare-backend.tar
-      docker save ${FRONTEND_IMAGE}:${BUILD_NUMBER} -o /tmp/healthcare-frontend.tar
-      sudo ${K3S_CTR} --address ${K3S_SOCKET} --namespace k8s.io images import /tmp/healthcare-backend.tar
-      sudo ${K3S_CTR} --address ${K3S_SOCKET} --namespace k8s.io images import /tmp/healthcare-frontend.tar
-      rm -f /tmp/healthcare-backend.tar /tmp/healthcare-frontend.tar
+      BACKEND_TAR=/tmp/healthcare-backend.tar
+      FRONTEND_TAR=/tmp/healthcare-frontend.tar
+      trap 'rm -f "$BACKEND_TAR" "$FRONTEND_TAR"' EXIT
+      docker save ${BACKEND_IMAGE}:${BUILD_NUMBER} -o "$BACKEND_TAR"
+      docker save ${FRONTEND_IMAGE}:${BUILD_NUMBER} -o "$FRONTEND_TAR"
+      echo 'Importing images into K3s containerd (Jenkins requires passwordless permission for these exact ctr commands).'
+      sudo -n ${K3S_CTR} --address ${K3S_SOCKET} --namespace k8s.io images import "$BACKEND_TAR"
+      sudo -n ${K3S_CTR} --address ${K3S_SOCKET} --namespace k8s.io images import "$FRONTEND_TAR"
     ''' } }
     stage('Deploy Healthcare Application') { steps { sh '''
       set -eu
